@@ -4,16 +4,13 @@ import java.time.Duration;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import io.rsocket.AbstractRSocket;
-import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
-import io.rsocket.SocketAcceptor;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.rsocket.util.ByteBufPayload;
@@ -30,15 +27,18 @@ public class Example1 {
             public Flux<Payload> requestStream(Payload payload) {
                 return Flux.interval(Duration.ofMillis(10))
                         .map(it -> ByteBufPayload.create("hello from server"))
-                        .onBackpressureDrop(p -> System.out.println("dropped " + dropped.incrementAndGet()))
-                        ;
+                        .onBackpressureDrop(p -> System.out.println(
+                                "dropped " + dropped.incrementAndGet()));
             }
         };
 
-        RSocketFactory.receive().acceptor((setup, sendingSocket) -> Mono.just(handler)).transport(TcpServerTransport.create(8080))
+        RSocketFactory.receive()
+                .acceptor((setup, sendingSocket) -> Mono.just(handler))
+                .transport(TcpServerTransport.create(8080))
                 .start().block();
 
-        RSocket client = RSocketFactory.connect().transport(TcpClientTransport.create(8080))
+        RSocket client = RSocketFactory.connect()
+                .transport(TcpClientTransport.create(8080))
                 .start().block();
 
         if (client == null) {
